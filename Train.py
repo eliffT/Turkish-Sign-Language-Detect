@@ -1,5 +1,4 @@
-
-
+#Part 1
 #Kütüphane ve paketler import edilir.
 import tensorflow as tf
 from tensorflow import keras
