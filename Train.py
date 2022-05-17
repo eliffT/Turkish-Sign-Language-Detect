@@ -1,74 +1,102 @@
 
+
+#Kütüphane ve paketler import edilir.
+import tensorflow as tf
+from tensorflow import keras
 from keras.models import Sequential
 from keras.layers import Conv2D
 from keras.layers import MaxPooling2D
 from keras.layers import Flatten
-from keras.layers import Dropout
-from keras.layers import Dense
-import numpy as np
+from keras.layers import Dense, Dropout
+from keras import optimizers
 
 
-IMG_SIZE = 200
-nb_classes=23
-MODEL_NAME = 'handsign.model'
-
-#Verileri etiketleme fonksiyonu
-def one_hot_targets_(labels_dense,nb_classes):
-    targets = np.array(labels_dense).reshape(-1)
-    print(targets)
-    one_hot_targets = np.eye(nb_classes,)[targets]
-    return one_hot_targets
-
-#Veri setinin yüklenmesi
-train_data = np.load('train_data.npy',encoding="latin1",allow_pickle=True)
-test_data = np.load('test_data.npy',encoding="latin1",allow_pickle=True)
-
-print('traindatlen:'+str(len(train_data)))
-print('testdatalen:'+str(len(test_data)))
-
-#X değişkenine train data verileri yeniden boyutlandırılır, Y değişkenine ise train data etiket isimleri eklenir.
-X = np.array([i[0] for i in train_data]).reshape(-1,IMG_SIZE,IMG_SIZE,1)
-Y = [i[1] for i in train_data]
-Y1=one_hot_targets_(Y,nb_classes)
-
-print('val y'+str(Y1))
-print('len X:'+str(len(X)))
-print('len Y:'+str(len(Y)))
-test_x = np.array([i[0] for i in test_data]).reshape(-1,IMG_SIZE,IMG_SIZE,1)
-test_y = [i[1] for i in test_data]
-test_y1=one_hot_targets_(test_y,nb_classes)
-test_y=test_y1
-Y=Y1
-print('test_x:'+str(len(test_x)))
-print('test_y:'+str(len(test_y)))
-print('val y'+str(test_y1))
-
-#CNN mimarisi katmanları oluşturuluyor.
+#CNN modeli oluşturuluyor.
 classifier = Sequential()
-classifier.add(Conv2D(16,kernel_size=(3,3), input_shape = (IMG_SIZE, IMG_SIZE, 1), activation = 'relu'))	
-classifier.add(MaxPooling2D(pool_size =(2,2)))	
-classifier.add(Conv2D(32,kernel_size=(3,3), activation = 'relu'))
+
+# Step 1 - Convolutio Layer -Evrişim Katmanı
+classifier.add(Conv2D(32, (3,  3), input_shape = (64, 64, 3), activation = 'relu'))
+
+#step 2 - Pooling - Havuzlama Katmanı
 classifier.add(MaxPooling2D(pool_size =(2,2)))
-classifier.add(Conv2D(64,kernel_size=(3,3), activation = 'relu'))
+
+# İkinci convolution layer eklenir. 
+classifier.add(Conv2D(32, (3,  3), activation = 'relu'))
 classifier.add(MaxPooling2D(pool_size =(2,2)))
+
+#Üçüncü Concolution Layer eklenir.
+classifier.add(Conv2D(64, (3,  3), activation = 'relu'))
+classifier.add(MaxPooling2D(pool_size =(2,2)))
+
+
+#Step 3 - Flattening - Düzleştirme
 classifier.add(Flatten())
-classifier.add(Dense(128, activation = 'relu'))
 
-#classifier.add(Dropout(0.5))
-classifier.add(Dense(nb_classes,activation = 'softmax'))
+#Step 4 - Full Connection -Tam bağımlı katman
+classifier.add(Dense(256, activation = 'relu'))
+classifier.add(Dropout(0.5))
+#22 sınıfa ayrılır.
+classifier.add(Dense(22, activation = 'softmax'))
 
-#Optimizasyon ve loss değerleri belirlenir ve model compile edilir.	
-classifier.compile(optimizer = 'adam', 
-                   loss = 'binary_crossentropy',
-                   metrics = ['accuracy'])
+#CNN compile edilir.
+classifier.compile(
+              optimizer = keras.optimizers.SGD(learning_rate=0.01),
+              # model.compile(loss='categorical_crossentropy', optimizer=opt)(lr = 0.01),
+              loss = 'categorical_crossentropy',
+              metrics = ['accuracy'])
+
+#Veriler yüklenir. Önişleme aşamaları
+from keras.preprocessing.image import ImageDataGenerator
+train_datagen = ImageDataGenerator(
+        rescale=1./255,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True)
+
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+training_set = train_datagen.flow_from_directory(
+        'mydata/training_set',
+        target_size=(64, 64),
+        batch_size=32,
+        class_mode='categorical')
+
+test_set = test_datagen.flow_from_directory(
+        'mydata/test_set',
+        target_size=(64, 64),
+        batch_size=32,
+        class_mode='categorical')
+#Modelin eğitilmesi
+model = classifier.fit_generator(
+        training_set,
+        steps_per_epoch=800,
+        epochs=35,
+        validation_data = test_set,
+        validation_steps = 5500
+      )
+
+#Modelin kaydedilmesi
+import h5py
+classifier.save('Trained_model.h5')
+
+print(model.history.keys())
 
 
-#Model eğitilir.
-classifier.fit(X,  Y,epochs=20, validation_data=(test_x,  test_y),  steps_per_epoch = 800 )
 
-
-
-classifier.save(MODEL_NAME)
-score = classifier.evaluate(test_x, test_y)
-print('Test accuarcy: %0.4f%%' % (score[1] * 100))
-
+import matplotlib.pyplot as plt
+# Başarım Oranı
+plt.plot(model.history['accuracy'])
+plt.plot(model.history['val_accuracy'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
+# Yitim Fonksiyonu 
+plt.plot(model.history['loss'])
+plt.plot(model.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.show()
