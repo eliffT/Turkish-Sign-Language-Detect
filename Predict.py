@@ -6,7 +6,8 @@ def nothing(x):
     pass
 
 image_x, image_y = 32,32
-#Eğitilen modelin yüklenmesi
+
+# Eğitilen modelin yüklenmesi
 from keras.models import load_model
 classifier = load_model('Trained_model.h5')
 
@@ -17,7 +18,8 @@ def predictor():
        test_image = image.img_to_array(test_image)
        test_image = np.expand_dims(test_image, axis = 0)
        result = classifier.predict(test_image)
-      #Sınıfların etiketlenmesi 
+    
+      # Sınıfların etiketlenmesi 
        if result[0][0] == 1:
               return 'A'
        elif result[0][1] == 1:
@@ -67,7 +69,7 @@ def predictor():
        
 
 cam = cv2.VideoCapture(0)
-#Trackbar ile Işık ve kontrast ayarı yapılır.
+# Trackbar ile Işık ve kontrast ayarı yapılır.
 cv2.namedWindow("Trackbars")
 
 cv2.createTrackbar("L - H", "Trackbars", 0, 179, nothing)
@@ -92,7 +94,7 @@ while True:
     u_s = cv2.getTrackbarPos("U - S", "Trackbars")
     u_v = cv2.getTrackbarPos("U - V", "Trackbars")
 
-    #Dikdörtgen içerisine istediğimiz harfin gösterimi yapılır.
+    # Dikdörtgen içerisine istediğimiz harfin gösterimi yapılır.
     img = cv2.rectangle(frame, (425,100),(625,300), (0,255,0), thickness=2, lineType=8, shift=0)
 
     lower_blue = np.array([l_h, l_s, l_v])
@@ -105,13 +107,13 @@ while True:
     cv2.imshow("test", frame)
     cv2.imshow("mask", mask)
     
-   
-        
-    img_name = "1.png"
-    save_img = cv2.resize(mask, (image_x, image_y))
-    cv2.imwrite(img_name, save_img)
-    print("{} written!".format(img_name))
-    img_text = predictor()
+   # Klavyeden C harfine basıldıkça dikdörgen çerçeve içerisindeki gösterilen alfabeyi tahmin eder.
+    if cv2.waitKey(1) == ord('c'):    
+        img_name = "1.png"
+        save_img = cv2.resize(mask, (image_x, image_y))
+        cv2.imwrite(img_name, save_img)
+        print("{} written!".format(img_name))
+        img_text = predictor()
         
 
     if cv2.waitKey(1) == 27:
