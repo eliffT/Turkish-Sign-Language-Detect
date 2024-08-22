@@ -5,7 +5,7 @@ import numpy as np
 def nothing(x):
     pass
 
-image_x, image_y = 64,64
+image_x, image_y = 32,32
 #Eğitilen modelin yüklenmesi
 from keras.models import load_model
 classifier = load_model('Trained_model.h5')
@@ -13,7 +13,7 @@ classifier = load_model('Trained_model.h5')
 def predictor():
        import numpy as np
        from keras.preprocessing import image
-       test_image = image.load_img('1.png', target_size=(64, 64))
+       test_image = image.load_img('1.png', target_size=(32,32))
        test_image = image.img_to_array(test_image)
        test_image = np.expand_dims(test_image, axis = 0)
        result = classifier.predict(test_image)
